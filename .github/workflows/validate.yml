@@ -1,0 +1,18 @@
+name: Validate PowerShell
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  syntax:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - shell: pwsh
+        run: |
+          if(-not(Test-Path README.md)){throw 'Missing README'}
+          if(-not(Test-Path Run-OneClick.bat)){throw 'Missing launcher'}
+          $bad=$false
+          Get-ChildItem . -Filter *.ps1 -File -Recurse|ForEach-Object{
+            $t=$null;$e=$null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($_.FullName,[ref]$t,[ref]$e)
+            if($e.Count){$bad=$true;$e|ForEach-Object{Write-Error $_.Message}}
+          }
+          if($bad){exit 1}
